@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nature Puzzle - Piece Together Nature's Beauty!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom animations and styles */
+        .puzzle-piece {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: grab;
+        }
+        
+        .puzzle-piece:active {
+            cursor: grabbing;
+        }
+        
+        .puzzle-piece.dragging {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+        
+        .puzzle-piece.valid-drop {
+            border: 3px solid #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .puzzle-solved {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .nav-link {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, #10b981, #059669);
+            transition: left 0.3s ease;
+        }
+        
+        .nav-link:hover::before {
+            left: 0;
+        }
+        
+        /* Responsive puzzle grid */
+        .puzzle-grid {
+            display: grid;
+            gap: 2px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .puzzle-grid.easy,
+        .puzzle-grid.normal {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .puzzle-grid.hard {
+            grid-template-columns: repeat(4, 1fr);
+        }
+        
+        .puzzle-cell {
+            aspect-ratio: 1;
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .puzzle-cell img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        @media (max-width: 640px) {
+            .puzzle-grid {
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white/80 backdrop-blur-sm shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-extrabold text-green-700 font-serif tracking-widest drop-shadow-xl italic bg-gradient-to-r from-green-400 via-blue-400 to-green-700 bg-clip-text text-transparent">EcoJigsaw</h1>
+                <div class="flex space-x-6">
+                    <a href="#home" class="nav-link text-gray-700 hover:text-green-600 font-medium py-2">Home</a>
+                    <a href="#how-to-play" class="nav-link text-gray-700 hover:text-green-600 font-medium py-2">How to Play</a>
+                    <a href="#puzzle-library" class="nav-link text-gray-700 hover:text-green-600 font-medium py-2">Puzzle Library</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Home Section -->
+        <section id="home" class="text-center mb-12 slide-in">
+            <h2 class="text-5xl font-bold text-gray-800 mb-4">Piece Together Nature's Beauty!</h2>
+            <p class="text-xl text-gray-600 mb-8">Challenge yourself with beautiful nature puzzles</p>
+            
+            <!-- Puzzle Selection -->
+            <div class="bg-white/80 backdrop-blur-sm rounded-xl shadow-xl p-8 max-w-4xl mx-auto">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">Choose Your Adventure</h3>
+                
+                <!-- Difficulty Selection -->
+                <div class="mb-8">
+                    <h4 class="text-lg font-semibold text-gray-700 mb-4">Select Difficulty:</h4>
+                    <div class="flex flex-wrap justify-center gap-4">
+                        <button class="difficulty-btn px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors" data-difficulty="easy">
+                            Easy (3x3)
+                        </button>
+                        <button class="difficulty-btn px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors" data-difficulty="normal">
+                            Normal (3x3)
+                        </button>
+                        <button class="difficulty-btn px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors" data-difficulty="hard">
+                            Hard (4x4)
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Image Selection -->
+                <div class="mb-8">
+                    <h4 class="text-lg font-semibold text-gray-700 mb-4">Choose Your Puzzle:</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="puzzle-option cursor-pointer group" data-image="forest">
+                            <div class="bg-green-200 rounded-lg p-4 h-40 flex items-center justify-center group-hover:bg-green-300 transition-colors">
+                                <div class="text-center">
+                                    <div class="text-4xl mb-2">🌲</div>
+                                    <h5 class="font-bold text-gray-800">Forest</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="puzzle-option cursor-pointer group" data-image="mountain">
+                            <div class="bg-blue-200 rounded-lg p-4 h-40 flex items-center justify-center group-hover:bg-blue-300 transition-colors">
+                                <div class="text-center">
+                                    <div class="text-4xl mb-2">🏔️</div>
+                                    <h5 class="font-bold text-gray-800">Mountain</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="puzzle-option cursor-pointer group" data-image="ocean">
+                            <div class="bg-cyan-200 rounded-lg p-4 h-40 flex items-center justify-center group-hover:bg-cyan-300 transition-colors">
+                                <div class="text-center">
+                                    <div class="text-4xl mb-2">🌊</div>
+                                    <h5 class="font-bold text-gray-800">Ocean</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="start-game" class="px-8 py-4 bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold rounded-lg hover:from-green-600 hover:to-blue-600 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Start Puzzle
+                </button>
+            </div>
+        </section>
+
+        <!-- Game Section -->
+        <section id="game" class="hidden">
+            <div class="text-center mb-8">
+                <h3 class="text-3xl font-bold text-gray-800 mb-2">Solve the Puzzle!</h3>
+                <p class="text-gray-600">Drag pieces to rearrange them</p>
+                <div class="mt-4 flex justify-center gap-4">
+                    <button id="shuffle-btn" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors">
+                        Shuffle
+                    </button>
+                    <button id="back-to-home" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                        Back to Home
+                    </button>
+                </div>
+            </div>
+            <!-- Puzzle Preview -->
+            <div class="flex justify-center mb-4">
+                <div id="puzzle-preview" class="rounded shadow border border-gray-200 bg-white flex items-center justify-center" style="width: 96px; height: 96px; overflow: hidden;"></div>
+            </div>
+            <div class="puzzle-container bg-white/80 backdrop-blur-sm rounded-xl shadow-xl p-8 max-w-lg mx-auto">
+                <div id="puzzle-grid" class="puzzle-grid"></div>
+                <div class="flex flex-col items-center mt-4">
+                    <button id="check-btn" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors mb-2">Check</button>
+                    <div id="check-result" class="text-lg font-semibold"></div>
+                </div>
+            </div>
+        <!-- JS code removed from here; it is now only in the <script> block below. -->
+        </section>
+
+        <!-- How to Play Section -->
+        <section id="how-to-play" class="hidden">
+            <div class="bg-white/80 backdrop-blur-sm rounded-xl shadow-xl p-8 max-w-4xl mx-auto">
+                <h3 class="text-3xl font-bold text-gray-800 mb-6 text-center">How to Play</h3>
+                
+                <div class="space-y-6">
+                    <div class="border-l-4 border-green-500 pl-4">
+                        <h4 class="text-xl font-bold text-green-700 mb-2">Easy Mode (3x3)</h4>
+                        <p class="text-gray-700">Drag any piece to any position on the grid. No restrictions on movement!</p>
+                    </div>
+                    
+                    <div class="border-l-4 border-yellow-500 pl-4">
+                        <h4 class="text-xl font-bold text-yellow-700 mb-2">Normal Mode (3x3)</h4>
+                        <p class="text-gray-700">Drag pieces to adjacent cells only (up, down, left, right). Strategic thinking required!</p>
+                    </div>
+                    
+                    <div class="border-l-4 border-red-500 pl-4">
+                        <h4 class="text-xl font-bold text-red-700 mb-2">Hard Mode (4x4)</h4>
+                        <p class="text-gray-700">Same rules as Normal mode but with 16 pieces. The ultimate challenge!</p>
+                    </div>
+                </div>
+                
+                <div class="mt-8 text-center">
+                    <button id="back-to-home-2" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                        Back to Home
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Puzzle Library Section -->
+        <section id="puzzle-library" class="hidden">
+            <div class="bg-white/80 backdrop-blur-sm rounded-xl shadow-xl p-8 max-w-4xl mx-auto">
+                <h3 class="text-3xl font-bold text-gray-800 mb-6 text-center">Puzzle Library</h3>
+                <div id="library-content" class="space-y-4">
+                    <!-- Dynamically populated with solved puzzles -->
+                </div>
+                <div class="mt-8 text-center">
+                    <button id="back-to-home-3" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                        Back to Home
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-8 max-w-md mx-4 text-center slide-in">
+            <div class="text-6xl mb-4">🎉</div>
+            <h4 class="text-2xl font-bold text-gray-800 mb-2">Congratulations!</h4>
+            <p id="success-message" class="text-gray-600 mb-6">You solved the puzzle!</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button id="modal-home" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                    Home
+                </button>
+                <button id="modal-replay" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                    Replay
+                </button>
+                <button id="modal-next" class="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
+                    Next
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state and configuration
+        let gameState = {
+            currentDifficulty: null,
+            currentImage: null,
+            currentPuzzle: [],
+            solvedPuzzle: [],
+            gridSize: 3,
+            draggedElement: null,
+            draggedIndex: null
+        };
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        /**
+         * Initialize the application with event listeners and load saved data
+         */
+        function initializeApp() {
+            // Navigation event listeners
+            document.querySelectorAll('a[href^="#"]').forEach(link => {
+                link.addEventListener('click', handleNavigation);
+            });
+
+            // Game setup event listeners
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.addEventListener('click', selectDifficulty);
+            });
+
+            document.querySelectorAll('.puzzle-option').forEach(option => {
+                option.addEventListener('click', selectPuzzleImage);
+            });
+
+            document.getElementById('start-game').addEventListener('click', startGame);
+            document.getElementById('shuffle-btn').addEventListener('click', shufflePuzzle);
+            
+            // Back to home buttons
+            document.getElementById('back-to-home').addEventListener('click', () => showSection('home'));
+            document.getElementById('back-to-home-2').addEventListener('click', () => showSection('home'));
+            document.getElementById('back-to-home-3').addEventListener('click', () => showSection('home'));
+
+            // Modal event listeners
+            document.getElementById('modal-home').addEventListener('click', () => {
+                hideModal();
+                showSection('home');
+            });
+            
+            document.getElementById('modal-replay').addEventListener('click', () => {
+                hideModal();
+                startGame();
+            });
+            
+            document.getElementById('modal-next').addEventListener('click', () => {
+                hideModal();
+                showSection('home');
+            });
+
+            // Load puzzle library
+            loadPuzzleLibrary();
+        }
+
+        /**
+         * Handle navigation between sections
+         */
+        function handleNavigation(e) {
+            e.preventDefault();
+            const targetId = e.target.getAttribute('href').substring(1);
+            showSection(targetId);
+        }
+
+        /**
+         * Show specific section and hide others
+         */
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('main > section').forEach(section => {
+                section.classList.add('hidden');
+            });
+
+            // Show target section
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+                targetSection.classList.add('fade-in');
+            }
+
+            // Special handling for puzzle library
+            if (sectionId === 'puzzle-library') {
+                loadPuzzleLibrary();
+            }
+        }
+
+        /**
+         * Handle difficulty selection
+         */
+        function selectDifficulty(e) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('ring-4', 'ring-blue-300');
+            });
+
+            // Add active class to selected button
+            e.target.classList.add('ring-4', 'ring-blue-300');
+            
+            gameState.currentDifficulty = e.target.dataset.difficulty;
+            gameState.gridSize = e.target.dataset.difficulty === 'hard' ? 4 : 3;
+            
+            checkStartGameButton();
+        }
+
+        /**
+         * Handle puzzle image selection
+         */
+        function selectPuzzleImage(e) {
+            // Remove active class from all options
+            document.querySelectorAll('.puzzle-option').forEach(option => {
+                option.classList.remove('ring-4', 'ring-blue-300');
+            });
+
+            // Add active class to selected option
+            e.currentTarget.classList.add('ring-4', 'ring-blue-300');
+            
+            gameState.currentImage = e.currentTarget.dataset.image;
+            
+            checkStartGameButton();
+        }
+
+        /**
+         * Check if start game button should be enabled
+         */
+        function checkStartGameButton() {
+            const startBtn = document.getElementById('start-game');
+            if (gameState.currentDifficulty && gameState.currentImage) {
+                startBtn.disabled = false;
+            } else {
+                startBtn.disabled = true;
+            }
+        }
+
+        /**
+         * Start the puzzle game
+         */
+        function startGame() {
+            if (!gameState.currentDifficulty || !gameState.currentImage) {
+                alert('Please select both difficulty and image!');
+                return;
+            }
+
+            // Generate puzzle pieces
+            generatePuzzle();
+
+            // Show game section
+            showSection('game');
+
+            // Show preview image
+            showPuzzlePreview();
+
+            // Create puzzle grid
+            createPuzzleGrid();
+
+            // Shuffle the puzzle
+            shufflePuzzle();
+        }
+        /**
+         * Show a small preview of the original image above the puzzle grid
+         */
+        function showPuzzlePreview() {
+            const preview = document.getElementById('puzzle-preview');
+            if (!preview) return;
+            const imageMap = {
+                forest: 'assets/images/Forest003.jpg',
+                mountain: 'assets/images/Mountain001.jpg',
+                ocean: 'assets/images/Ocean001.jpg'
+            };
+            const imgSrc = imageMap[gameState.currentImage];
+            if (imgSrc) {
+                preview.innerHTML = `<img src="${imgSrc}" alt="Preview" style="width:100%;height:100%;object-fit:cover;">`;
+            } else {
+                preview.innerHTML = '';
+            }
+        }
+
+        /**
+         * Generate puzzle pieces based on current settings
+         */
+        function generatePuzzle() {
+            const totalPieces = gameState.gridSize * gameState.gridSize;
+            gameState.currentPuzzle = [];
+            gameState.solvedPuzzle = [];
+
+            for (let i = 0; i < totalPieces; i++) {
+                gameState.currentPuzzle.push(i);
+                gameState.solvedPuzzle.push(i);
+            }
+        }
+
+        /**
+         * Create the puzzle grid DOM elements
+         */
+        function createPuzzleGrid() {
+            const grid = document.getElementById('puzzle-grid');
+            grid.innerHTML = '';
+            grid.className = `puzzle-grid ${gameState.currentDifficulty}`;
+
+            const totalPieces = gameState.gridSize * gameState.gridSize;
+
+            for (let i = 0; i < totalPieces; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'puzzle-cell';
+                cell.dataset.index = i;
+
+                const piece = document.createElement('div');
+                piece.className = 'puzzle-piece w-full h-full flex items-center justify-center text-2xl font-bold';
+                piece.draggable = true;
+                piece.dataset.originalIndex = i;
+
+                // Create visual representation (using emojis for demo)
+                const pieceContent = getPieceContent(gameState.currentImage, i);
+                piece.innerHTML = pieceContent;
+
+                // Add drag event listeners
+                piece.addEventListener('dragstart', handleDragStart);
+                piece.addEventListener('dragend', handleDragEnd);
+
+                cell.appendChild(piece);
+                cell.addEventListener('dragover', handleDragOver);
+                cell.addEventListener('drop', handleDrop);
+
+                grid.appendChild(cell);
+            }
+
+            // Attach event listener for the check button every time grid is created
+            const checkBtn = document.getElementById('check-btn');
+            if (checkBtn) {
+                checkBtn.onclick = handleManualCheck;
+            }
+        }
+
+        /**
+         * Get visual content for puzzle piece
+         */
+        function getPieceContent(image, index) {
+            // Map image key to the main image file for the puzzle
+            const imageMap = {
+                forest: 'assets/images/Forest003.jpg',
+                mountain: 'assets/images/Mountain001.jpg',
+                ocean: 'assets/images/Ocean001.jpg'
+            };
+            const imgSrc = imageMap[image];
+            const gridSize = gameState.gridSize;
+            const row = Math.floor(index / gridSize);
+            const col = index % gridSize;
+            const percent = 100;
+            // Calculate background position for each piece
+            const bgSize = `${gridSize * percent}% ${gridSize * percent}%`;
+            const bgPos = `${(col * percent) / (gridSize - 1)}% ${(row * percent) / (gridSize - 1)}%`;
+            return `<div style="width:100%;height:100%;background-image:url('${imgSrc}');background-size:${bgSize};background-position:${bgPos};background-repeat:no-repeat;"></div>`;
+        }
+
+
+        /**
+         * Handle drag start event
+         */
+        function handleDragStart(e) {
+            gameState.draggedElement = e.target;
+            gameState.draggedIndex = parseInt(e.target.parentElement.dataset.index);
+            e.target.classList.add('dragging');
+        }
+
+        /**
+         * Handle drag end event
+         */
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            // Remove valid drop indicators
+            document.querySelectorAll('.puzzle-cell').forEach(cell => {
+                cell.classList.remove('valid-drop');
+            });
+        }
+
+        /**
+         * Handle drag over event
+         */
+        function handleDragOver(e) {
+            e.preventDefault();
+            
+            const targetIndex = parseInt(e.currentTarget.dataset.index);
+            
+            // Check if drop is valid based on difficulty
+            if (isValidMove(gameState.draggedIndex, targetIndex)) {
+                e.currentTarget.classList.add('valid-drop');
+            } else {
+                e.currentTarget.classList.remove('valid-drop');
+            }
+        }
+
+        /**
+         * Handle drop event
+         */
+        function handleDrop(e) {
+            e.preventDefault();
+            
+            const targetIndex = parseInt(e.currentTarget.dataset.index);
+            
+            // Check if drop is valid
+            if (!isValidMove(gameState.draggedIndex, targetIndex)) {
+                return;
+            }
+
+            // Get the pieces to swap
+            const draggedPiece = gameState.draggedElement;
+            const targetCell = e.currentTarget;
+            const targetPiece = targetCell.querySelector('.puzzle-piece');
+            const draggedCell = draggedPiece.parentElement;
+
+            // Swap the pieces
+            if (targetPiece) {
+                draggedCell.appendChild(targetPiece);
+            }
+            targetCell.appendChild(draggedPiece);
+
+            // Update cell indices
+            draggedCell.dataset.index = targetIndex;
+            targetCell.dataset.index = gameState.draggedIndex;
+
+            // Update game state
+            const temp = gameState.currentPuzzle[gameState.draggedIndex];
+            gameState.currentPuzzle[gameState.draggedIndex] = gameState.currentPuzzle[targetIndex];
+            gameState.currentPuzzle[targetIndex] = temp;
+
+            // Check if puzzle is solved
+            setTimeout(() => {
+                if (isPuzzleSolved()) {
+                    handlePuzzleSolved();
+                }
+            }, 100);
+        }
+
+        /**
+         * Check if a move is valid based on difficulty
+         */
+        function isValidMove(fromIndex, toIndex) {
+            if (gameState.currentDifficulty === 'easy') {
+                return true; // Any move is valid in easy mode
+            }
+
+            // For normal and hard modes, only adjacent moves are allowed
+            const fromRow = Math.floor(fromIndex / gameState.gridSize);
+            const fromCol = fromIndex % gameState.gridSize;
+            const toRow = Math.floor(toIndex / gameState.gridSize);
+            const toCol = toIndex % gameState.gridSize;
+
+            const rowDiff = Math.abs(fromRow - toRow);
+            const colDiff = Math.abs(fromCol - toCol);
+
+            // Adjacent cells (up, down, left, right)
+            return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+        }
+
+        /**
+         * Check if puzzle is solved
+         */
+        function isPuzzleSolved() {
+            const pieces = document.querySelectorAll('.puzzle-piece');
+            
+            for (let i = 0; i < pieces.length; i++) {
+                const piece = pieces[i];
+                const currentIndex = parseInt(piece.parentElement.dataset.index);
+                const originalIndex = parseInt(piece.dataset.originalIndex);
+                
+                if (currentIndex !== originalIndex) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        /**
+         * Handle puzzle solved
+         */
+        function handlePuzzleSolved() {
+            // Add solved animation
+            document.getElementById('puzzle-grid').classList.add('puzzle-solved');
+            
+            // Save to puzzle library
+            savePuzzleToLibrary();
+            
+            // Show success modal
+            showSuccessModal();
+            
+            // Play success sound (optional)
+            playSuccessSound();
+        }
+
+        /**
+         * Show success modal
+         */
+        function showSuccessModal() {
+            const modal = document.getElementById('success-modal');
+            const message = document.getElementById('success-message');
+            
+            const difficultyText = gameState.currentDifficulty.charAt(0).toUpperCase() + gameState.currentDifficulty.slice(1);
+            const imageText = gameState.currentImage.charAt(0).toUpperCase() + gameState.currentImage.slice(1);
+            
+            message.textContent = `You solved the ${difficultyText} ${imageText} puzzle! Try another challenge!`;
+            
+            modal.classList.remove('hidden');
+        }
+
+        /**
+         * Hide success modal
+         */
+        function hideModal() {
+            document.getElementById('success-modal').classList.add('hidden');
+            document.getElementById('puzzle-grid').classList.remove('puzzle-solved');
+        }
+
+        /**
+         * Play success sound using Web Audio API
+         */
+        function playSuccessSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+                oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+                oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+            } catch (error) {
+                console.log('Audio not supported or blocked');
+            }
+        }
+
+        /**
+         * Shuffle the puzzle pieces
+         */
+        function shufflePuzzle() {
+            const grid = document.getElementById('puzzle-grid');
+            const pieces = Array.from(grid.querySelectorAll('.puzzle-piece'));
+            
+            // Fisher-Yates shuffle
+            for (let i = pieces.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
+            }
+            
+            // Place shuffled pieces back in grid
+            const cells = grid.querySelectorAll('.puzzle-cell');
+            pieces.forEach((piece, index) => {
+                cells[index].appendChild(piece);
+            });
+            
+            // Update current puzzle state
+            gameState.currentPuzzle = pieces.map(piece => parseInt(piece.dataset.originalIndex));
+        }
+
+        /**
+         * Save completed puzzle to library
+         */
+        function savePuzzleToLibrary() {
+            const puzzleData = {
+                image: gameState.currentImage,
+                difficulty: gameState.currentDifficulty,
+                completedAt: new Date().toISOString(),
+                id: `${gameState.currentImage}_${gameState.currentDifficulty}`
+            };
+            
+            let savedPuzzles = JSON.parse(localStorage.getItem('naturePuzzleLibrary') || '[]');
+            
+            // Check if puzzle already exists
+            const existingIndex = savedPuzzles.findIndex(p => p.id === puzzleData.id);
+            
+            if (existingIndex >= 0) {
+                // Update existing entry
+                savedPuzzles[existingIndex] = puzzleData;
+            } else {
+                // Add new entry
+                savedPuzzles.push(puzzleData);
+            }
+            
+            localStorage.setItem('naturePuzzleLibrary', JSON.stringify(savedPuzzles));
+        }
+
+        /**
+         * Load and display puzzle library
+         */
+        function loadPuzzleLibrary() {
+            const savedPuzzles = JSON.parse(localStorage.getItem('naturePuzzleLibrary') || '[]');
+            const libraryContent = document.getElementById('library-content');
+            
+            if (savedPuzzles.length === 0) {
+                libraryContent.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <div class="text-4xl mb-4">🧩</div>
+                        <p>No puzzles solved yet. Start playing to build your library!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            libraryContent.innerHTML = savedPuzzles.map(puzzle => {
+                const completedDate = new Date(puzzle.completedAt).toLocaleDateString();
+                const difficultyColor = {
+                    easy: 'bg-green-100 text-green-800',
+                    normal: 'bg-yellow-100 text-yellow-800',
+                    hard: 'bg-red-100 text-red-800'
+                }[puzzle.difficulty];
+                
+                const imageIcon = {
+                    forest: '🌲',
+                    mountain: '🏔️',
+                    ocean: '🌊'
+                }[puzzle.image];
+                
+                return `
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-white">
+                        <div class="flex items-center space-x-4">
+                            <div class="text-3xl">${imageIcon}</div>
+                            <div>
+                                <h5 class="font-bold text-gray-800 capitalize">${puzzle.image} Puzzle</h5>
+                                <p class="text-sm text-gray-600">Completed on ${completedDate}</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-sm font-medium ${difficultyColor} capitalize">
+                            ${puzzle.difficulty}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>
